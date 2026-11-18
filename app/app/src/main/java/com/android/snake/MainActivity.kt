@@ -125,10 +125,10 @@ import java.util.concurrent.TimeUnit
 
 private val STAGES = listOf(
     "检查设备与授权",
-    "加载漏洞利用",
-    "注入内核模块",
-    "挂载与隐藏",
-    "收尾"
+    "获取临时权限",
+    "加载内核模块",
+    "等待 su 就绪",
+    "启动管理器"
 )
 
 private data class Contributor(val name: String, val role: String)
@@ -2091,9 +2091,16 @@ class MainActivity : ComponentActivity() {
     private fun detectStage(line: String) {
         val lower = line.lowercase()
         when {
-            lower.contains("module_loaded") || lower.contains("module loaded") -> advanceStage(2)
-            lower.contains("susfs") || lower.contains("hybridmount") || lower.contains("mount") -> advanceStage(3)
-            line.trim() == "DONE" || lower.contains("success") -> advanceStage(4)
+            // 临时权限只认载荷自己打印的凭据就绪；「PLANT_RECOVERED」是事后核实
+            // 发现 cred 其实已落地（竞态误报）时的补判。
+            lower.contains("plant_cred_ok") || lower.contains("plant_recovered") ||
+                lower.contains("cred writes landed") || lower.contains("plant_ok") ->
+                advanceStage(1)
+            lower.contains("module_loaded") || lower.contains("already_loaded") -> advanceStage(2)
+            lower.contains("su_id_rc") || lower.contains("wait for su") -> advanceStage(3)
+            // 不能用 contains("success")：内核日志里满是 "backup sepolicy success"
+            // 之类，会提前把阶段推到收尾。
+            line.trim() == "DONE" || lower.contains("manager_start") -> advanceStage(4)
         }
     }
 
@@ -2383,11 +2390,11 @@ class MainActivity : ComponentActivity() {
             "6.12.23-android16-5-g41f4cb1fa7c7-abogki465038634-4k" to ExploitKind.CVE61223,
             "6.6.118-android15-8-g9bc34d5b0c79-abogki537459655-4k" to ExploitKind.CVE66118,
             "6.6.118-android15-8-gc4127a25dcf3-ab15863337-4k" to ExploitKind.CVE66118,
+            "6.6.118-android15-8-gb1422e39c313-abogki552867473-4k" to ExploitKind.CVE66118,
             "6.6.127-android15-8-gd489d4ad2a70-abogki567717946-4k" to ExploitKind.CVE66127,
             "6.12.58-android16-6-g690108013dcc-abogki576129896-4k" to ExploitKind.CVE61258,
             "6.18.21-android17-5-g284297031c53-abogki555938958-4k" to ExploitKind.CVE61821,
             "6.12.69-android16-6-g586bfab1b9c5-abogki536749445-4k" to ExploitKind.CVE61269,
-            "6.6.118-android15-8-gb1422e39c313-abogki552867473-4k" to ExploitKind.CVE66118,
         )
     }
 }
