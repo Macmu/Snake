@@ -1,1 +1,1 @@
-bacbba02f21de5cca3db39707aa7f03c3a224d1e1801f0776f11bdd54da018b8  Snake-v1.3.apk
+683947da7a1418c455a37ce01b4ce234cfa900b5bb447b6b6de71cccd85d9bd3  Snake-v1.4.apk
